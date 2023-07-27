@@ -1,4 +1,4 @@
-byte data[8];
+volatile byte data[8];
 bool enableMinutes = true, enableHours = true;
 byte digits[] = {
   0b111111,
@@ -21,10 +21,10 @@ void Timer2_init() {
 }
 
 void sendToDisplay(byte hrs, byte mins){
-  data[0] = hrs / 10;
-  data[1] = hrs % 10;
-  data[3] = mins / 10;
-  data[7] = mins % 10;
+  data[0] = ~digits[hrs / 10];
+  data[1] = ~digits[hrs % 10];
+  data[3] = ~digits[mins / 10];
+  data[7] = ~digits[mins % 10];
 }
 
 ISR(TIMER2_COMPA_vect){
@@ -39,5 +39,5 @@ ISR(TIMER2_COMPA_vect){
     return;
   }
 
-  PORTD = ~digits[data[(~PORTC & 0b1111) - 1]]; 0b0001 0b0010 0b0100 0b1000 0b0001
+  PORTD = data[(~PORTC & 0b1111) - 1];
 }
