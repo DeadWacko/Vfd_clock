@@ -1,7 +1,12 @@
 #include <RTClib.h>
 #include <EEPROM.h>
-#include "dynamic.h"
-#include "animations.h"
+
+
+
+#include "dynamic.h"// выкинуть нахер
+#include "animations.h" // аналогично
+
+
 
 //добавить секундное мигание точкой 2-го сегмента.
 
@@ -18,26 +23,26 @@ uint32_t blinkTime, pressTime, modifyTime, inactiveTime;
 bool pressFlg, longPressFlg, enableAnimation1 = true, enableAnimation2;
 
 void setup() {
-  //Serial.begin(9600);
   GPIO_init();
   rtc.begin();
   Timer2_init();
-  initPWM();
+  initPWM();  
+ 
 
   if(!digitalRead(LEFT_BUTTON)){
     EEPROM.write(0, !EEPROM.read(0));
     data[0] = 0b0000010;
     data[1] = 0b1110011;
-    data[3] = 0b1111101;
-    data[7] = ~digits[EEPROM.read(0)];
+    data[2] = 0b1111101;
+    data[3] = ~digits[EEPROM.read(0)];
     delay(2000);
   }
   if(!digitalRead(RIGHT_BUTTON)){
     EEPROM.write(1, !EEPROM.read(1));
     data[0] = 0b0000010;
     data[1] = 0b0100100;
-    data[3] = 0b1111101;
-    data[7] = ~digits[EEPROM.read(1)];
+    data[2] = 0b1111101;
+    data[3] = ~digits[EEPROM.read(1)];
     delay(2000);
   }
   enableAnimation1 = EEPROM.read(0);
@@ -50,12 +55,11 @@ void setup() {
     lastHour = rtc.now().hour();
   }
 
-  /*data[0] = 1;
-  data[1] = 2;
-  data[3] = 3;
-  data[7] = 4;*/
+
 
 }
+
+
 
 void loop() {
   switch(mode){
@@ -71,14 +75,16 @@ void loop() {
       sendToDisplay(setHrs, setMins);
       if(millis() - blinkTime > 500){
         blinkTime = millis();
-        enableHours = !enableHours;
+
+        disable_dig ^= 0b0011;
       }
       break;
     case 2:
       sendToDisplay(setHrs, setMins);
       if(millis() - blinkTime > 500){
         blinkTime = millis();
-        enableMinutes = !enableMinutes;
+
+        disable_dig ^= 0b1100;
       }
       break;
 
@@ -109,16 +115,18 @@ void loop() {
       rtc.adjust(DateTime(rtc.now().year(), rtc.now().month(), rtc.now().day(), setHrs, setMins, rtc.now().second()));
     }
 
-    enableHours = true;
-    enableMinutes = true;
+    // enableHours = true;
+    // enableMinutes = true;
+    disable_dig = 0;
   }
 
   if(millis() - inactiveTime > 15000 && mode)
     mode = 0;
 
   if(!digitalRead(LEFT_BUTTON)){
-    enableHours = true;
-    enableMinutes = true;
+    // enableHours = true;
+    // enableMinutes = true;
+    disable_dig = 0;
     inactiveTime = millis();
     if(millis() - modifyTime > 250){
       modifyTime = millis();
@@ -136,8 +144,9 @@ void loop() {
     }
   }
   else if(!digitalRead(RIGHT_BUTTON)){
-    enableHours = true;
-    enableMinutes = true;
+    // enableHours = true;
+    // enableMinutes = true;
+    disable_dig = 0;
     inactiveTime = millis();
     if(millis() - modifyTime > 250){
       modifyTime = millis();
@@ -164,9 +173,12 @@ void GPIO_init() {
 
   PORTC = 0b1110;
 
-  pinMode(LEFT_BUTTON, INPUT_PULLUP);
-  pinMode(MIDDLE_BUTTON, INPUT_PULLUP);
-  pinMode(RIGHT_BUTTON, INPUT_PULLUP);
+
+
+
+  DDRB &= ~(_BV(PB0) | _BV(PB4) | _BV(PB3)); // настройка кнопок. Поменять PB0 на PB5 на релизе.
+  PORTB |= _BV(PB0) | _BV(PB4) | _BV(PB3); // добавление подтяжек.
+
 }
 
 void initPWM(){
@@ -175,5 +187,5 @@ void initPWM(){
   TCCR1B =B00010001;
   ICR1 = 320;   //задаем частоту 50КГЦ
   OCR1A = 160 - 2;  //9пине
-  OCR1B = 160 + 2 ;  //10пине // настройка портов
+  OCR1B = 160 + 2 ;  //10пине 
 }

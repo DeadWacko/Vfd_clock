@@ -1,5 +1,7 @@
-volatile byte data[8];
-bool enableMinutes = true, enableHours = true;
+volatile byte data[4];
+volatile byte current_dig = 0;
+volatile byte disable_dig = 0; 
+
 byte digits[] = {
   0b111111,
   0b1100,
@@ -23,21 +25,25 @@ void Timer2_init() {
 void sendToDisplay(byte hrs, byte mins){
   data[0] = ~digits[hrs / 10];
   data[1] = ~digits[hrs % 10];
-  data[3] = ~digits[mins / 10];
-  data[7] = ~digits[mins % 10];
+  data[2] = ~digits[mins / 10];
+  data[3] = ~digits[mins % 10];
 }
 
-ISR(TIMER2_COMPA_vect){
-  PORTC = ((PORTC & 0b11110000) | (((PORTC & 0b1111) << 1) >> 4) | (((PORTC & 0b1111) << 1) & 0b1111));
+ISR(TIMER2_COMPA_vect){  
+  PORTC = ~(1 << (current_dig & 0b11));
 
-  if(!enableHours && ((PORTC & 0b1111) == 0b1110 || (PORTC & 0b1111) == 0b1101)){
+  if(disable_dig & (1 << (current_dig & 0b11))){
     PORTD = 127;
-    return;
   }
-  if(!enableMinutes && ((PORTC & 0b1111) == 0b1011 || (PORTC & 0b1111) == 0b0111)){
-    PORTD = 127;
-    return;
+  else {
+    PORTD = data[(current_dig & 0b11)];
   }
+  
+  // if (current_dig & 0b10000000){
+  //   disable_dig |= 1;
 
-  PORTD = data[(~PORTC & 0b1111) - 1];
+  // } else{
+  //   disable_dig &= ~1;
+  // }
+  current_dig++;
 }
